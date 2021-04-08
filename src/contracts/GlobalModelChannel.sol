@@ -35,7 +35,7 @@ contract GlobalModelChannel {
     GMInfo public gmInfo;
     Configuration public configuration;
 
-
+    // admin can create channel
     constructor () public {
         admin = msg.sender;
         gmInfo.initModel = "Init Model";
@@ -63,7 +63,8 @@ contract GlobalModelChannel {
             bounty);
     }
 
-    function completeTask() public {
+    function completeTask(string memory finalModel, uint lossFunction) public {
+        require(lossFunction > gmInfo.threshold, "Does not meet expectation.");
         IERC20(rewardToken).transferFrom(address(this), address(dataProviderGroup), bounty);
     }
 }

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.6.6;
+pragma abicoder v2;
+
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -11,9 +13,19 @@ contract DataProviderGroup {
     mapping(address => uint) public stakeBalances;
     mapping(address => bool) public isGroupMember;
 
+    mapping(uint => string[]) public selectedUpdates;
+
     mapping(uint => address[]) public activeMemberForEachRound;
     mapping(address => bool) public isTrainer;
     mapping(address => bool) public isVerifier;
+
+    uint currentRound = 0;
+
+    address[] rewardTrainer;
+    address[] rewardVerifier;
+
+    uint TrainerRewardPerRound = 100;
+    uint VerifierRewardPerRound = 5;
 
     event TaskStarted(
         string indexed initModel,
@@ -105,6 +117,40 @@ contract DataProviderGroup {
             learningRate,
             batchSize,
             roundNumber);
+    }
+
+    function recordData(string[] memory updates, address[] memory trainer, address verifier, uint round) public {
+        uint totalT = trainer.length;
+        uint totalU = updates.length;
+        for(uint i = 0; i < totalU; i++) {
+            selectedUpdates[round].push(updates[i]);
+        }
+
+        for(uint i = 0; i < totalT; i++) {
+            rewardTrainer.push(trainer[i]);
+        }
+
+        rewardVerifier.push(verifier);
+    }
+
+    function endRound() public {
+        updateStake();
+        // check the end condition, start another round or return the final model
+        string memory finalModel = 'test final model';
+        emit JobCompleted(finalModel);
+    }
+
+    function updateStake() public {
+        // add reward to their stake
+        uint totalT = rewardTrainer.length;
+        uint totalV = rewardVerifier.length;
+        for(uint i = 0; i < totalT; i++) {
+            stakeBalances[rewardTrainer[i]] = stakeBalances[rewardTrainer[i]] + TrainerRewardPerRound;
+        }
+
+        for(uint i = 0; i < totalV; i++) {
+            stakeBalances[rewardVerifier[i]] = stakeBalances[rewardVerifier[i]] + VerifierRewardPerRound;
+        }
     }
 
     function joinActiveNode(uint roundNumber) public onlyGroupMember {
